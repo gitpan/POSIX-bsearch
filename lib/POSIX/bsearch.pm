@@ -9,7 +9,7 @@ use vars qw($VERSION @ISA @EXPORT
 @ISA = qw(Exporter);
 @EXPORT = qw( bsearch );
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 
 sub bsearch(&$\@){
@@ -26,15 +26,17 @@ sub bsearch(&$\@){
  local *$cb = \$b;
  $a = shift;
  my $table = shift;
+ undef($count);
  my ($lowerbound,$first,$last,$upperbound) = (-1,-1,-1,0+@$table);
  $upperbound or return (); # empty list
+ 
  my ($guess,$compres);
 
  # find index
- my $icount = 0;
+ our $icount = 0;
  do {{
     # warn join ', ',$lowerbound,$first,$last,$upperbound;
-    $icount++ > 8 and die "STUCK";
+    $icount++ > 40 and die "STUCK";
     $guess = int (($upperbound + $lowerbound)/2);
     if ($guess == $lowerbound){
        $index = $lowerbound;
@@ -44,10 +46,20 @@ sub bsearch(&$\@){
     $compres =  &$comparator;
     # warn "got $compres";
     if ($compres < 0){
+       unless ($guess){
+           # guess is zero! we are off the low end
+	   $index = -1;
+	   return ();
+       };
        $upperbound = $guess;
        next;
     };
     if ($compres > 0){
+       if ($guess == $#$table){
+           # we are off the high end
+	   $index = @$table;
+	   return ();
+       };
        $lowerbound = $guess;
        next;
     };
@@ -66,7 +78,7 @@ sub bsearch(&$\@){
        my $upperboun =  $guess;
        $icount = 0;
        for(;;){
-    $icount++ > 8 and die "STUCK";
+    $icount++ > 40 and die "STUCK";
          # warn join ', ',SearchingForFirst =>$lowerbound,$first,$last,$upperboun;
          $guess = int (( $upperboun + $lowerbound ) /2);
          if ($guess == $lowerbound){
@@ -101,7 +113,7 @@ sub bsearch(&$\@){
        my $lowerboun =  $guess;
        $icount = 0;
        for(;;){
-    $icount++ > 8 and die "STUCK";
+    $icount++ > 40 and die "STUCK";
          # warn join ', ',SearchingForLast =>$lowerboun,$first,$last,$upperbound;
          $guess = int (( $upperbound + $lowerboun ) /2);
          $b = $table->[$guess];
@@ -137,15 +149,15 @@ __END__
 
 =head1 NAME
 
-POSIX::bsearch - supplys (and extends) a function missing from the L<POSIX> module
+POSIX::bsearch - supplies (and extends) a function missing from the L<POSIX> module
 
 =head1 SYNOPSIS
 
 C<bsearch(\&SortFunc,$key,@SortedTable)> returns a possibly empty list of all
 elements from the sorted list matching $key according to the sort function.
 
-In scalar context, the first matching element located is returned and the 
-C<$POSIX::bsearch::index> and C<$POSIX::bsearch::count> variables are left alone.
+In scalar context, the first matching element located is returned
+and the C<$POSIX::bsearch::count> variable is left alone.
 
   use POSIX::bsearch;
   sub SortFunc {
@@ -155,13 +167,13 @@ C<$POSIX::bsearch::index> and C<$POSIX::bsearch::count> variables are left alone
   my @SortedList = sort SortFunc GetRecords();
   for ( bsearch
       \&SortFunc   # a block would work too
-      { lastname => 'Strummer', firstname => 'Joeseph' },  # key record
+      { lastname => 'Strummer', firstname => 'Joe' },  # key record
       @SortedList, # uses \@ prototype
   ){
       $_->{city} eq 'London' and $_->PrintRecord
   };
   print "Found $POSIX::bsearch::count ";
-  print "Josephs Strummer starting at index $POSIX::bsearch::index\n";
+  print "Joes Strummer starting at index $POSIX::bsearch::index\n";
   
 
 =head1 DESCRIPTION
@@ -173,7 +185,7 @@ explicitly does not supply a bsearch function.
 But here one is. In case you want, for instance, a range of consecutive
 records.
 
-The function takes three arguments, a comparison functin, a key, and a
+The function takes three arguments, a comparison function, a key, and a
 sorted array.  Side effects include setting the C<$POSIX::bsearch::count>
 and C<$POSIX::bsearch::index> variables.
 
@@ -193,15 +205,17 @@ elements. All matching elements are returned in the result set, and two
 package variables are set.
 
 =head2 C<$POSIX::bsearch::index>
-
-the index of the first record that gives a nonnegative comparison result
+Set in both scalar and array context, C<$POSIX::bsearch::index> holds
+the index of the first record that gives a nonnegative
+comparison result, or -1 when the key is under the 0th
+element, or the array length when over the last.
 
 =head2 C<$POSIX::bsearch::count>
 
 the number of records that give zero comparison result
 
-Giving a degenerate comparison function C<sub{0}> will yield the whole
-sorted list
+undefined when called in scalar context
+
 
 =head2 reentrancy
 
@@ -216,8 +230,14 @@ C<bsearch>
 
 =head1 HISTORY
 
-initial version 0.01 written march 4, 2010, in response to a discussion on
+initial version 0.01 written March 4, 2010, in response to a discussion on
 the perl 5 porters mailng list concerning possible perl uses for bsearch.
+
+version 0.02 edited August 23, 2010, now handles a key that is previous to
+the first element in the sorted list, also handles larger lists without
+claiming to be stuck, also sets C<$POSIX::bsearch::index> indicatively
+when the key is over or under the data range.
+Stefane Leforestier kindly brought the bug to my attention.
 
 =head1 SEE ALSO
 
@@ -239,7 +259,7 @@ http://creativecommons.org/licenses/by/3.0/ or send a letter to Creative
 Commons, 171 Second Street, Suite 300, San Francisco, California,
 94105, USA.
 
-Leacing this section of the documentation in your installed copy of
+Leaving this section of the documentation in your installed copy of
 this module intact is sufficient attribution. A source code comment
 mentioning the POSIX::bsearch module from CPAN is sufficient attribution
 in derivative works.

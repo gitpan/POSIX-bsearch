@@ -6,7 +6,7 @@
 # change 'tests => 1' to 'tests => last_test_to_print';
 
 use Test;
-BEGIN { plan tests => 10 };
+BEGIN { plan tests => 14 };
 use POSIX::bsearch;
 ok(1); # If we made it this far, we're ok.
 
@@ -35,7 +35,7 @@ my @shouldbeempty = bsearch { 0 } mimsy => @{[]};
 ok( 23+@shouldbeempty, 23, "search on empty array returns empty array" );
 
 # try to find something that isn't there
-my @shouldbeempty =  bsearch \&CF, mimsy => @sorted;
+   @shouldbeempty =  bsearch \&CF, mimsy => @sorted;
 ok( 23+@shouldbeempty, 23, "search for absent member returns empty array" );
 
 
@@ -63,6 +63,17 @@ my $Betterbefalse = eval { @Twoers = bsearch {
  } l => @sorted; 1; };
  # # warn "got exception $@";
 ok(!$Betterbefalse);
+
+# KEY TOO LOW
+my @MiddleLetters = qw/ J K L M N O P /;
+@Twoers = bsearch { $a cmp $b } G => @MiddleLetters;
+ok($#twoers, -1, "key too low returns empty list");
+ok($POSIX::bsearch::index, -1, 'key too low sets index to -1');
+
+# KEY TOO HIGH
+@Twoers = bsearch { $a cmp $b } T => @MiddleLetters;
+ok($#twoers, -1, "key too high returns empty list");
+ok($POSIX::bsearch::index, 7, 'key too high sets index to array length');
 
 1;
 

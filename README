@@ -1,4 +1,4 @@
-POSIX-bsearch version 0.01
+POSIX-bsearch version 0.02
 ==========================
 
 POSIX bsearch semantics are provided in scalar context.
@@ -8,6 +8,11 @@ that compare to zero against the provided key.
 
 Comparison function semantics are identical to Perl's sort function, using
 $a and $b package variables.
+
+Sets $POSIX::bsearch::index to the index of the first
+( wantarray ? indexwise : temporally) found element, or -1 if the key
+sorts under the first element, or the array length if it sorts over
+the last.
 
 INSTALLATION
 
